@@ -51,12 +51,6 @@ spec:
         secret:
           secretName: {{ template "atlantis.fullname" . }}-aws
       {{- end }}
-      {{- if .Values.imagePullSecrets }}
-      imagePullSecrets:
-      {{- range .Values.imagePullSecrets }}
-      - name: {{ . }}
-      {{- end }}
-      {{- end }}
       containers:
         - name: {{ .Chart.Name }}
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
@@ -72,6 +66,7 @@ spec:
           {{- if .Values.allowRepoConfig }}
             - --allow-repo-config
           {{- end }}
+            - --allow-fork-prs
           ports:
           - name: atlantis
             containerPort: 4141
@@ -147,9 +142,9 @@ spec:
               secretKeyRef:
                 name: {{ template "atlantis.fullname" . }}-webhook
                 key: bitbucket_token
-          {{- if .Values.bitbucket.baseURL }}
+          {{- if .Values.bitbucket.baseUrl }}
           - name: ATLANTIS_BITBUCKET_BASE_URL
-            value: {{ .Values.bitbucket.baseURL }}
+            value: {{ .Values.bitbucket.baseUrl }}
           - name: ATLANTIS_BITBUCKET_WEBHOOK_SECRET
             valueFrom:
               secretKeyRef:
@@ -199,12 +194,12 @@ spec:
           {{- end }}
           {{- if .Values.gitconfig}}
           - name: gitconfig-volume
-            readOnly: true
+            readonly: true
             mountPath: /etc/secret-gitconfig
           {{- end }}
           {{- if .Values.aws}}
           - name: aws-volume
-            readOnly: true
+            readonly: true
             mountPath: /home/atlantis/.aws
           {{- end }}
           {{- if .Values.tlsSecretName }}
@@ -212,6 +207,10 @@ spec:
             mountPath: /etc/tls/
           {{- end }}
           resources:
+      {{- if .Values.imagePullSecrets }}
+      imagePullSecrets:
+        - name: {{ .Values.imagePullSecrets }}
+      {{- end }}
 {{ toYaml .Values.resources | indent 12 }}
     {{- with .Values.nodeSelector }}
       nodeSelector:
@@ -237,4 +236,4 @@ spec:
         requests:
           # The biggest thing Atlantis stores is the Git repo when it checks it out.
           # It deletes the repo after the pull request is merged.
-          storage: {{ .Values.dataStorage }}
+          storage: {{ .Values.atlantisDataStorage }}
